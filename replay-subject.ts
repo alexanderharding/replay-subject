@@ -11,16 +11,21 @@ export type ReplaySubject<Value = unknown> = Subject<Value>;
 export const ReplaySubject: ReplaySubjectConstructor = class {
   readonly [Symbol.toStringTag] = "ReplaySubject";
   readonly #bufferSize: number;
+  /**
+   * Tracking a known list of buffered values, so we don't have to clone them while
+   * iterating to prevent reentrant behaviors.
+   */
+  #bufferSnapshot?: ReadonlyArray<unknown>;
   readonly #buffer: Array<unknown> = [];
   readonly #subject = new Subject();
   readonly signal = this.#subject.signal;
   readonly #observable = new Observable((observer) => {
     // We use a copy here, so reentrant code does not mutate our array while we're
     // emitting it to the new observer.
-    const copy = this.#buffer.slice();
+    this.#bufferSnapshot ??= this.#buffer.slice();
 
     // Replay all buffered values to the observer, if any.
-    for (const value of copy) {
+    for (const value of this.#bufferSnapshot) {
       observer.next(value);
       if (observer.signal.aborted) break;
     }
@@ -47,6 +52,8 @@ export const ReplaySubject: ReplaySubjectConstructor = class {
       const length = this.#buffer.push(value);
       // Trim the buffer, if needed.
       if (length > this.#bufferSize) this.#buffer.shift();
+      // Reset the buffer snapshot since it is now stale.
+      this.#bufferSnapshot = undefined;
     }
     this.#subject.next(value);
   }
