@@ -2,7 +2,7 @@
 
 A set of tooling that encapsulates an object that acts as a variant of
 [`Subject`](https://jsr.io/@xan/subject/doc/~/Subject) to be used if you want to replay
-[`nexted`](https://jsr.io/@xan/observer/doc/~/Observer.next) value (if any).
+[`nexted`](https://jsr.io/@xan/observer/doc/~/Observer.next) values (if any).
 
 ## Build
 
