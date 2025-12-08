@@ -6,7 +6,7 @@ import type { ReplaySubject } from "./replay-subject.ts";
 export interface ReplaySubjectConstructor {
   /**
    * Creates and returns an object that acts as a [`Subject`](https://jsr.io/@xan/subject/doc/~/Subject) that replays
-   * buffered[`nexted`](https://jsr.io/@xan/observer/doc/~/Observer.next) values upon
+   * buffered [`nexted`](https://jsr.io/@xan/observer/doc/~/Observer.next) values upon
    * [`subscription`](https://jsr.io/@xan/observable/doc/~/Observable.subscribe).
    * @example
    * ```ts
