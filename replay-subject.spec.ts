@@ -1,7 +1,9 @@
 import { assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { ReplaySubject } from "./replay-subject.ts";
 import { Observer } from "@xan/observer";
-import { Observable } from "@xan/observable";
+import { of } from "@xan/observable-of";
+import { materialize, type Notification } from "@xan/observable-materialize";
+import { pipe } from "@xan/pipe";
 
 Deno.test("ReplaySubject.toString should be '[object ReplaySubject]'", () => {
   // Arrange / Act / Assert
@@ -39,23 +41,13 @@ Deno.test(
   "ReplaySubject should be an Observer which can be given to Observable.subscribe",
   () => {
     // Arrange
-    const notifications: Array<["N", number] | ["R"] | ["T", unknown]> = [];
-    const source = new Observable<number>((observer) => {
-      for (const value of [1, 2, 3, 4, 5]) {
-        observer.next(value);
-        if (observer.signal.aborted) return;
-      }
-      observer.return();
-    });
+    const notifications: Array<Notification<number>> = [];
+    const source = of(1, 2, 3, 4, 5);
     const subject = new ReplaySubject<number>();
 
     // Act
-    subject.subscribe(
-      new Observer({
-        next: (value) => notifications.push(["N", value]),
-        return: () => notifications.push(["R"]),
-        throw: (value) => notifications.push(["T", value]),
-      }),
+    pipe(subject, materialize()).subscribe(
+      new Observer((notification) => notifications.push(notification)),
     );
     source.subscribe(subject);
 
@@ -76,18 +68,14 @@ Deno.test(
   () => {
     // Arrange
     const subject = new ReplaySubject<string>(2);
-    const notifications: Array<["N", string] | ["R"] | ["T", unknown]> = [];
+    const notifications: Array<Notification<string>> = [];
 
     // Act
     subject.next("first");
     subject.next("second");
     subject.next("third");
-    subject.subscribe(
-      new Observer({
-        next: (value) => notifications.push(["N", value]),
-        return: () => notifications.push(["R"]),
-        throw: (value) => notifications.push(["T", value]),
-      }),
+    pipe(subject, materialize()).subscribe(
+      new Observer((notification) => notifications.push(notification)),
     );
 
     // Assert
@@ -103,18 +91,14 @@ Deno.test(
   () => {
     // Arrange
     const subject = new ReplaySubject<string>();
-    const notifications: Array<["N", string] | ["R"] | ["T", unknown]> = [];
+    const notifications: Array<Notification<string>> = [];
 
     // Act
     subject.next("first");
     subject.next("second");
     subject.next("third");
-    subject.subscribe(
-      new Observer({
-        next: (value) => notifications.push(["N", value]),
-        return: () => notifications.push(["R"]),
-        throw: (value) => notifications.push(["T", value]),
-      }),
+    pipe(subject, materialize()).subscribe(
+      new Observer((notification) => notifications.push(notification)),
     );
 
     // Assert
@@ -131,18 +115,14 @@ Deno.test(
   () => {
     // Arrange
     const subject = new ReplaySubject<string>(2);
-    const notifications: Array<["N", string] | ["R"] | ["T", unknown]> = [];
+    const notifications: Array<Notification<string>> = [];
 
     // Act
     subject.next("first");
     subject.next("second");
     subject.return();
-    subject.subscribe(
-      new Observer({
-        next: (value) => notifications.push(["N", value]),
-        return: () => notifications.push(["R"]),
-        throw: (value) => notifications.push(["T", value]),
-      }),
+    pipe(subject, materialize()).subscribe(
+      new Observer((notification) => notifications.push(notification)),
     );
 
     // Assert
@@ -153,13 +133,9 @@ Deno.test(
 Deno.test("ReplaySubject.next should emit values to subscribers", () => {
   // Arrange
   const subject = new ReplaySubject<string>(2);
-  const notifications: Array<["N", string] | ["R"] | ["T", unknown]> = [];
-  subject.subscribe(
-    new Observer({
-      next: (value) => notifications.push(["N", value]),
-      return: () => notifications.push(["R"]),
-      throw: (value) => notifications.push(["T", value]),
-    }),
+  const notifications: Array<Notification<string>> = [];
+  pipe(subject, materialize()).subscribe(
+    new Observer((notification) => notifications.push(notification)),
   );
 
   // Act
@@ -176,17 +152,13 @@ Deno.test("ReplaySubject.next should emit values to subscribers", () => {
 Deno.test("ReplaySubject.next should store values for late subscribers", () => {
   // Arrange
   const subject = new ReplaySubject<string>(2);
-  const notifications: Array<["N", string] | ["R"] | ["T", unknown]> = [];
+  const notifications: Array<Notification<string>> = [];
 
   // Act
   subject.next("foo");
   subject.next("bar");
-  subject.subscribe(
-    new Observer({
-      next: (value) => notifications.push(["N", value]),
-      return: () => notifications.push(["R"]),
-      throw: (value) => notifications.push(["T", value]),
-    }),
+  pipe(subject, materialize()).subscribe(
+    new Observer((notification) => notifications.push(notification)),
   );
 
   // Assert
@@ -200,13 +172,9 @@ Deno.test("ReplaySubject.throw should pass through this subject", () => {
   // Arrange
   const error = new Error("test error");
   const subject = new ReplaySubject<string>(2);
-  const notifications: Array<["N", string] | ["R"] | ["T", unknown]> = [];
-  subject.subscribe(
-    new Observer({
-      next: (value) => notifications.push(["N", value]),
-      return: () => notifications.push(["R"]),
-      throw: (value) => notifications.push(["T", value]),
-    }),
+  const notifications: Array<Notification<string>> = [];
+  pipe(subject, materialize()).subscribe(
+    new Observer((notification) => notifications.push(notification)),
   );
 
   // Act
@@ -224,18 +192,14 @@ Deno.test("ReplaySubject.throw should notify late subscribers", () => {
   // Arrange
   const error = new Error("test error");
   const subject = new ReplaySubject<string>(2);
-  const notifications: Array<["N", string] | ["R"] | ["T", unknown]> = [];
+  const notifications: Array<Notification<string>> = [];
   subject.subscribe(new Observer({ throw: () => {} }));
 
   // Act
   subject.next("foo");
   subject.throw(error);
-  subject.subscribe(
-    new Observer({
-      next: (value) => notifications.push(["N", value]),
-      return: () => notifications.push(["R"]),
-      throw: (value) => notifications.push(["T", value]),
-    }),
+  pipe(subject, materialize()).subscribe(
+    new Observer((notification) => notifications.push(notification)),
   );
 
   // Assert
@@ -248,13 +212,9 @@ Deno.test("ReplaySubject.throw should notify late subscribers", () => {
 Deno.test("ReplaySubject.return should pass through this subject", () => {
   // Arrange
   const subject = new ReplaySubject<string>(2);
-  const notifications: Array<["N", string] | ["R"] | ["T", unknown]> = [];
-  subject.subscribe(
-    new Observer({
-      next: (value) => notifications.push(["N", value]),
-      return: () => notifications.push(["R"]),
-      throw: (value) => notifications.push(["T", value]),
-    }),
+  const notifications: Array<Notification<string>> = [];
+  pipe(subject, materialize()).subscribe(
+    new Observer((notification) => notifications.push(notification)),
   );
 
   // Act
@@ -268,17 +228,13 @@ Deno.test("ReplaySubject.return should pass through this subject", () => {
 Deno.test("ReplaySubject.return should notify late subscribers", () => {
   // Arrange
   const subject = new ReplaySubject<string>(2);
-  const notifications: Array<["N", string] | ["R"] | ["T", unknown]> = [];
+  const notifications: Array<Notification<string>> = [];
 
   // Act
   subject.next("foo");
   subject.return();
-  subject.subscribe(
-    new Observer({
-      next: (value) => notifications.push(["N", value]),
-      return: () => notifications.push(["R"]),
-      throw: (value) => notifications.push(["T", value]),
-    }),
+  pipe(subject, materialize()).subscribe(
+    new Observer((notification) => notifications.push(notification)),
   );
 
   // Assert
